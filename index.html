@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>دستیار مالی هوشمند</title>
+    
+    <!-- افزودن فونت وزیرمتن برای ظاهر زیباتر -->
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-bg: #f8f9fa;
+            --secondary-bg: #ffffff;
+            --text-color: #212529;
+            --primary-color: #007bff;
+            --border-color: #dee2e6;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            --success-color: #28a745;
+            --error-color: #dc3545;
+        }
+        body {
+            font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--primary-bg);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--secondary-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+            box-sizing: border-box;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s forwards;
+        }
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 26px;
+            color: var(--text-color);
+            font-weight: 700;
+        }
+        .input-area textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 16px;
+            min-height: 100px;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+        .actions button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .actions button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+        .actions button:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+        }
+        .loader {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        .result-area {
+            margin-top: 25px;
+            background: #e9ecef4d;
+            padding: 15px;
+            border-radius: 12px;
+            display: none;
+            border-left: 5px solid var(--primary-color);
+        }
+        .result-area.success { border-left-color: var(--success-color); }
+        .result-area.error { border-left-color: var(--error-color); }
+
+        .result-area h3 {
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .result-area pre {
+            background-color: #2d2d2d;
+            color: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 14px;
+            text-align: left;
+            direction: ltr;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>دستیار مالی هوشمند</h1>
+        </div>
+
+        <div class="input-area">
+            <textarea id="userInput" placeholder="مثال: هزینه ناهار امروز با آقای رضایی در رستوران البرز، 450 هزار تومان شد."></textarea>
+        </div>
+
+        <div class="actions">
+            <button id="submitButton" onclick="processRequest()">ثبت و تحلیل هوشمند</button>
+        </div>
+
+        <div class="loader" id="loader">
+            <p>در حال پردازش با هوش مصنوعی...</p>
+        </div>
+
+        <div class="result-area" id="resultArea">
+            <h3 id="resultTitle">نتیجه تحلیل:</h3>
+            <pre id="resultJson"></pre>
+        </div>
+    </div>
+
+    <script>
+        // =================================================================
+        // اتصال نهایی: آدرس وب اپلیکیشن Apps Script خود را اینجا قرار دهید
+        // =================================================================
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby9z615oe8Xcy7W3J_W_yBXIsIT6H4uqs5U2yOXCySnOYCscftryamxBr6M3OudMstk/exec';
+
+        async function processRequest() {
+            const userInput = document.getElementById('userInput').value;
+            const submitButton = document.getElementById('submitButton');
+            const loader = document.getElementById('loader');
+            const resultArea = document.getElementById('resultArea');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultJson = document.getElementById('resultJson');
+
+            if (!userInput.trim()) {
+                alert('لطفا دستور خود را وارد کنید.');
+                return;
+            }
+
+            // غیرفعال کردن دکمه و نمایش لودر
+            submitButton.disabled = true;
+            submitButton.textContent = 'در حال پردازش...';
+            loader.style.display = 'block';
+            resultArea.style.display = 'none';
+
+            try {
+                // ارسال درخواست به "مغز" سیستم (Apps Script)
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    // mode: 'no-cors' را در صورت بروز خطای CORS اضافه کنید
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userInput: userInput })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // نمایش موفقیت‌آمیز نتیجه
+                resultTitle.textContent = 'تحلیل با موفقیت انجام شد:';
+                resultJson.textContent = JSON.stringify(data, null, 2);
+                resultArea.classList.remove('error');
+                resultArea.classList.add('success');
+                
+            } catch (error) {
+                // نمایش خطا
+                resultTitle.textContent = 'خطا در پردازش:';
+                resultJson.textContent = `Error: ${error.message}\n\nلطفا اتصال اینترنت خود را بررسی کرده و دوباره تلاش کنید. اگر مشکل ادامه داشت، با مدیر سیستم تماس بگیرید.`;
+                resultArea.classList.remove('success');
+                resultArea.classList.add('error');
+
+            } finally {
+                // فعال کردن مجدد دکمه و پنهان کردن لودر
+                submitButton.disabled = false;
+                submitButton.textContent = 'ثبت و تحلیل هوشمند';
+                loader.style.display = 'none';
+                resultArea.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
